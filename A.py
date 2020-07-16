@@ -5,7 +5,7 @@ import heapq
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import os
-
+import cProfile
 
 
 mazeMaxY = 101
@@ -67,6 +67,9 @@ class state:
         self.fVal = self.getFVal()
         self.search = 0
         self.isBlocked = 0
+        self.isOpen = 0
+    def __eq__(self, other):
+        return type(self) == type(other) and  ((self.x == other.x) and (self.y == other.y))
     def getHeuristic(self, goalX, goalY):
         hVal = (abs(goalX-self.x) + abs(goalY-self.y))
         #print(hVal)
@@ -157,9 +160,10 @@ def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualM
     while(openList):
         #Get nextState w/ lowest fVal
         currentState = heapq.heappop(openList)
+        currentState.isOpen = 0
         poppedCounter+=1
         #print("poppedCounter is: " + str(poppedCounter))
-        if(currentState.getCoordinates() == goalState.getCoordinates()):
+        if(currentState == goalState):
                     print("Found the goalState! " + goalState.getCoordinates())
                     return currentState
         #print("CurrentState is: " + currentState.getCoordinates())
@@ -185,14 +189,14 @@ def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualM
                 succState.gVal = sys.maxsize
                 succState.fVal = succState.getFVal()
                 succState.search = counter
-
-            prevSuccState = IsInOpenList(succState, openList)
-            if(prevSuccState != None):
-                if(prevSuccState.gVal > (currentState.gVal + 1)):
-                    prevSuccState.gVal = (currentState.gVal + 1)
-                    prevSuccState.fVal = succState.getFVal()
-                    prevSuccState.parent = currentState
-                    prevSuccState.search = counter
+                succState.isOpen = 0
+            #prevSuccState = IsInOpenList(succState, openList)
+            if(succState.isOpen == 1):
+                if(succState.gVal > (currentState.gVal + 1)):
+                    succState.gVal = (currentState.gVal + 1)
+                    succState.fVal = succState.getFVal()
+                    succState.parent = currentState
+                    succState.search = counter
             else:
                 #print("Next neighbor is: " + succState.getCoordinates())
                 succState.gVal = (currentState.gVal + 1)
@@ -200,7 +204,8 @@ def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualM
                 succState.parent = currentState
                 succState.search = counter
                 heapq.heappush(openList, succState)
-                heapq.heapify(openList)
+                succState.isOpen = 1
+                #heapq.heapify(openList)
     return None
 
 def isInClosedList(state, closedList):
@@ -212,17 +217,11 @@ def isInClosedList(state, closedList):
 
 def IsInOpenList(state, openList):
     for s in openList:
-        if(s.getCoordinates() == state.getCoordinates()):
+        if(s == state):
             #state is in openList -> return 1 for true
             return s
     return None
 
-def removeFromOpenList(state, openList):
-    for s in openList:
-        if(s == state):
-            #state is in openList -> return 1 for true
-            openList.remove(state)
-            break
 
 def printClosedList(closedList):
     print("Closed list is: ", end="")
@@ -237,7 +236,7 @@ def aStarAdaptiveDriver(robot, fileName, maze, initialStartState, goalState, fil
     counter = 0
     currentMaze = [ [0]*mazeMaxX for row in range(mazeMaxY)]
     finalPath = []
-    while(startState.getCoordinates() != goalState.getCoordinates()):
+    while(startState != goalState):
         counter+=1
         startState.gVal = 0
         startState.fVal = startState.getFVal()
@@ -249,11 +248,13 @@ def aStarAdaptiveDriver(robot, fileName, maze, initialStartState, goalState, fil
         heapq.heapify(openList)
         closedList = {}
         heapq.heappush(openList, startState)
-        heapq.heapify(openList)
+        startState.isOpen = 1
+       #heapq.heapify(openList)
         oldExpansions = maze.expansions
         robot.updateRobotMaze(actualMaze, maze.map)
         resultState = aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze)
         
+        startState.isOpen = 0
         #Update hVals:
         for key in closedList.keys():
             closedList[key].hVal = goalState.gVal - closedList[key].gVal
@@ -268,7 +269,7 @@ def aStarAdaptiveDriver(robot, fileName, maze, initialStartState, goalState, fil
         path = []
         currentState = resultState
         #iteration = 0
-        while(currentState.getCoordinates() != startState.getCoordinates()):
+        while(currentState != startState):
             #print("Appending " + currentState.getCoordinates() + " to path")
             path.append(currentState)
             currentState = currentState.parent
@@ -317,7 +318,7 @@ def aStarDriver(robot, fileName, maze, initialStartState, goalState, filePath):
     counter = 0
     currentMaze = [ [0]*mazeMaxX for row in range(mazeMaxY)]
     finalPath = []
-    while(startState.getCoordinates() != goalState.getCoordinates()):
+    while(startState != goalState):
         counter+=1
         startState.gVal = 0
         startState.fVal = startState.getFVal()
@@ -329,11 +330,14 @@ def aStarDriver(robot, fileName, maze, initialStartState, goalState, filePath):
         heapq.heapify(openList)
         closedList = {}
         heapq.heappush(openList, startState)
-        heapq.heapify(openList)
+        startState.isOpen = 1
+        #heapq.heapify(openList)
         oldExpansions = maze.expansions
         robot.updateRobotMaze(actualMaze, maze.map)
         resultState = aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze)
         
+        startState.isOpen = 0
+
         expansionDict[counter] = maze.expansions - oldExpansions
         #printPathBackTrack(resultState)
         if(resultState == None):
@@ -342,7 +346,7 @@ def aStarDriver(robot, fileName, maze, initialStartState, goalState, filePath):
         path = []
         currentState = resultState
         #iteration = 0
-        while(currentState.getCoordinates() != startState.getCoordinates()):
+        while(currentState != startState):
             #print("Appending " + currentState.getCoordinates() + " to path")
             path.append(currentState)
             currentState = currentState.parent
@@ -364,7 +368,7 @@ def aStarDriver(robot, fileName, maze, initialStartState, goalState, filePath):
             robot.move(nextMove)
             finalPath.append(nextMove.getCoordinates())        
         
-        if(((counter % 100 ) == 0 ) or (counter == 1)):
+        if(((counter % 10 ) == 0 ) or (counter == 1)):
             visualizeMaze(currentMaze, maze, startState, counter, filePath)
         #Reset start to new robot's starting position
         startState = robot.currentState
@@ -432,8 +436,6 @@ def visualizeMazeBackward(currentMaze, maze, startState, counter, filePath):
     plt.close()
 
 
-
-
 def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, filePath):
     #Main A* driver
     actualMaze = np.loadtxt(fileName, delimiter = ' ').astype(int) 
@@ -443,7 +445,7 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
     counter = 0
     currentMaze = [ [0]*mazeMaxX for row in range(mazeMaxY)]
     finalPath = []
-    while(startState.getCoordinates() != goalState.getCoordinates()):
+    while(startState != goalState):
         counter+=1
         startState.gVal = 0
         startState.fVal = startState.getFVal()
@@ -455,13 +457,16 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
         heapq.heapify(openList)
         closedList = {}
         heapq.heappush(openList, startState)
-        heapq.heapify(openList)
+        startState.isOpen = 1
+        #heapq.heapify(openList)
         oldExpansions = maze.expansions
         robot.updateRobotMaze(actualMaze, maze.map)
         print("Planning start: " + startState.getCoordinates())
         print("goalState: " + goalState.getCoordinates())
         resultState = aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze)
         
+        startState.isOpen = 0
+
         expansionDict[counter] = maze.expansions - oldExpansions
         #printPathBackTrack(resultState)
         if(resultState == None):
@@ -470,8 +475,8 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
         path = []
         currentState = resultState
         #iteration = 0
-        while(currentState.getCoordinates() != startState.getCoordinates()):
-            if(currentState.getCoordinates() == robot.currentState.getCoordinates()):
+        while(currentState != startState):
+            if(currentState == robot.currentState):
                 currentState = currentState.parent
                 if(currentState == None):
                     break
@@ -486,7 +491,7 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
         #print("Path is: ", end="")
         #Execute path...
         for nextMove in path:
-            if(nextMove.getCoordinates() == robot.currentState.getCoordinates()):
+            if(nextMove == robot.currentState):
                 continue
             #print("Next Move: " + nextMove.getCoordinates())
             
@@ -515,15 +520,25 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
     return 1
 
 
-if __name__ == "__main__":
-    maze1 = maze('testMaze.txt')
-    maze1.goal[0], maze1.goal[1], maze1.start[0], maze1.start[1] = 100,100,0,0
-    #initialStartState = maze1.map[maze1.start[1]][maze1.start[0]]
-    #initialStartState.gVal = 0
-    #initialStartState.fVal = initialStartState.getFVal()
-    #myRobot = robot(initialStartState)
-    #goalState = maze1.map[maze1.goal[1]][maze1.goal[0]]
-    #filePath = "iterations"
-    #aStarBackwardDriver(myRobot, 'testMaze.txt', maze1, initialStartState, goalState, filePath)
 
+#Main():
+maze1 = maze('testMaze.txt')
 
+maze1.isBackward = 0
+
+#maze1.goal[0] = 20
+#maze1.goal[1] = 10
+#maze1.start[0] = 0
+#maze1.start[1] = 0
+
+initialStartState = maze1.map[maze1.start[1]][maze1.start[0]]
+initialStartState.gVal = 0
+initialStartState.fVal = initialStartState.getFVal()
+myRobot = robot(initialStartState)
+goalState = maze1.map[maze1.goal[1]][maze1.goal[0]]
+filePath = "iterations"
+profile = cProfile.Profile()
+profile.enable()
+aStarDriver(myRobot, 'testMaze.txt', maze1, initialStartState, goalState, filePath)
+profile.disable()
+profile.print_stats()
