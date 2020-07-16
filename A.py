@@ -66,8 +66,8 @@ class state:
         self.hVal = self.getHeuristic(goalX, goalY)
         self.fVal = self.getFVal()
         self.search = 0
-        self.isBlocked = 0
-        self.isOpen = 0
+        self.isBlocked = 'n'
+        self.isOpen = 'n'
     def __eq__(self, other):
         return type(self) == type(other) and  ((self.x == other.x) and (self.y == other.y))
     def getHeuristic(self, goalX, goalY):
@@ -111,7 +111,7 @@ class state:
         
         nebState = maze[newY][newX]
         #if(nebState.isBlocked == 1):
-        if(maze[newY][newX].isBlocked == 1):
+        if(maze[newY][newX].isBlocked == 'y'):
             #print("(" + str(newX) + "," + str(newY) + ") is BLOCKED ")
             return None
         else:
@@ -129,7 +129,7 @@ class robot:
                 if((actualMaze[newYR][(newXR)]) == 1):
                     #Right state is blocked -> update isBlocked to 1
                     #print("BLOCKED...updating map")
-                    maze[newYR][newXR].isBlocked = 1
+                    maze[newYR][newXR].isBlocked = 'y'
             
             newXU, newYU = self.currentState.x , self.currentState.y - 1
             #print("Checking up: ")
@@ -137,21 +137,21 @@ class robot:
                 if((actualMaze[newYU][newXU]) == 1):
                     #Up state is blocked -> update isBlocked to 1
                     #print("BLOCKED...updating map")
-                    maze[newYU][newXU].isBlocked = 1
+                    maze[newYU][newXU].isBlocked = 'y'
             newXL, newYL = self.currentState.x-1 , self.currentState.y
             #print("Checking left: ")
             if(newXL >=0):
                 if((actualMaze[newYL][newXL]) == 1):
                     #Left state is blocked -> update isBlocked to 1
                     #print("BLOCKED...updating map")
-                    maze[newYL][newXL].isBlocked = 1
+                    maze[newYL][newXL].isBlocked = 'y'
             newXD, newYD  = self.currentState.x , self.currentState.y+1
             #print("Checking down: ")
             if(newYD < mazeMaxY):
                 if((actualMaze[newYD][newXD]) == 1):
                     #Down state is blocked -> update isBlocked to 1
                     #print("BLOCKED...updating map")
-                    maze[newYD][newXD].isBlocked = 1
+                    maze[newYD][newXD].isBlocked = 'y'
 
 def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze):
     #Main A* algo
@@ -160,7 +160,7 @@ def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualM
     while(openList):
         #Get nextState w/ lowest fVal
         currentState = heapq.heappop(openList)
-        currentState.isOpen = 0
+        currentState.isOpen = 'n'
         poppedCounter+=1
         #print("poppedCounter is: " + str(poppedCounter))
         if(currentState == goalState):
@@ -189,9 +189,9 @@ def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualM
                 succState.gVal = sys.maxsize
                 succState.fVal = succState.getFVal()
                 succState.search = counter
-                succState.isOpen = 0
+                succState.isOpen = 'n'
             #prevSuccState = IsInOpenList(succState, openList)
-            if(succState.isOpen == 1):
+            if(succState.isOpen == 'y'):
                 if(succState.gVal > (currentState.gVal + 1)):
                     succState.gVal = (currentState.gVal + 1)
                     succState.fVal = succState.getFVal()
@@ -204,7 +204,7 @@ def aStar(maze, counter, openList, closedList, goalState, expansionDict, actualM
                 succState.parent = currentState
                 succState.search = counter
                 heapq.heappush(openList, succState)
-                succState.isOpen = 1
+                succState.isOpen = 'y'
                 #heapq.heapify(openList)
     return None
 
@@ -248,13 +248,13 @@ def aStarAdaptiveDriver(robot, fileName, maze, initialStartState, goalState, fil
         heapq.heapify(openList)
         closedList = {}
         heapq.heappush(openList, startState)
-        startState.isOpen = 1
+        startState.isOpen = 'y'
        #heapq.heapify(openList)
         oldExpansions = maze.expansions
         robot.updateRobotMaze(actualMaze, maze.map)
         resultState = aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze)
         
-        startState.isOpen = 0
+        startState.isOpen = 'n'
         #Update hVals:
         for key in closedList.keys():
             closedList[key].hVal = goalState.gVal - closedList[key].gVal
@@ -330,13 +330,13 @@ def aStarDriver(robot, fileName, maze, initialStartState, goalState, filePath):
         heapq.heapify(openList)
         closedList = {}
         heapq.heappush(openList, startState)
-        startState.isOpen = 1
+        startState.isOpen = 'y'
         #heapq.heapify(openList)
         oldExpansions = maze.expansions
         robot.updateRobotMaze(actualMaze, maze.map)
         resultState = aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze)
         
-        startState.isOpen = 0
+        startState.isOpen = 'n'
 
         expansionDict[counter] = maze.expansions - oldExpansions
         #printPathBackTrack(resultState)
@@ -392,7 +392,7 @@ def visualizeMaze(currentMaze, maze, startState, counter, filePath):
 
     for i in range(0, mazeMaxY):
         for j in range(0, mazeMaxX):
-            if(maze.map[i][j].isBlocked == 1):
+            if(maze.map[i][j].isBlocked == 'y'):
                 currentMaze[i][j] = 1
             else:
                 if(currentMaze[i][j] == 8):
@@ -416,7 +416,7 @@ def visualizeMazeBackward(currentMaze, maze, startState, counter, filePath):
 
     for i in range(0, mazeMaxY):
         for j in range(0, mazeMaxX):
-            if(maze.map[i][j].isBlocked == 1):
+            if(maze.map[i][j].isBlocked == 'y'):
                 currentMaze[i][j] = 1
             else:
                 if(currentMaze[i][j] == 8):
@@ -457,7 +457,7 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
         heapq.heapify(openList)
         closedList = {}
         heapq.heappush(openList, startState)
-        startState.isOpen = 1
+        startState.isOpen = 'y'
         #heapq.heapify(openList)
         oldExpansions = maze.expansions
         robot.updateRobotMaze(actualMaze, maze.map)
@@ -465,7 +465,7 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
         print("goalState: " + goalState.getCoordinates())
         resultState = aStar(maze, counter, openList, closedList, goalState, expansionDict, actualMaze)
         
-        startState.isOpen = 0
+        startState.isOpen = 'n'
 
         expansionDict[counter] = maze.expansions - oldExpansions
         #printPathBackTrack(resultState)
@@ -522,23 +522,23 @@ def aStarBackwardDriver(robot, fileName, maze, initialStartState, goalState, fil
 
 
 #Main():
-maze1 = maze('testMaze.txt')
+#maze1 = maze('testMaze.txt')
 
-maze1.isBackward = 0
+#maze1.isBackward = 0
 
 #maze1.goal[0] = 20
 #maze1.goal[1] = 10
 #maze1.start[0] = 0
 #maze1.start[1] = 0
 
-initialStartState = maze1.map[maze1.start[1]][maze1.start[0]]
-initialStartState.gVal = 0
-initialStartState.fVal = initialStartState.getFVal()
-myRobot = robot(initialStartState)
-goalState = maze1.map[maze1.goal[1]][maze1.goal[0]]
-filePath = "iterations"
-profile = cProfile.Profile()
-profile.enable()
-aStarDriver(myRobot, 'testMaze.txt', maze1, initialStartState, goalState, filePath)
-profile.disable()
-profile.print_stats()
+#initialStartState = maze1.map[maze1.start[1]][maze1.start[0]]
+#initialStartState.gVal = 0
+#initialStartState.fVal = initialStartState.getFVal()
+#myRobot = robot(initialStartState)
+#goalState = maze1.map[maze1.goal[1]][maze1.goal[0]]
+#filePath = "iterations"
+#profile = cProfile.Profile()
+#profile.enable()
+#aStarDriver(myRobot, 'testMaze.txt', maze1, initialStartState, goalState, filePath)
+#profile.disable()
+#profile.print_stats()
