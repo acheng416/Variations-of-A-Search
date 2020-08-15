@@ -4,4 +4,4 @@
 
 
 ### Example of robot's point of view while using Adaptive A* to navigate the maze
-![Alt Text]((https://github.com/acheng416/Variations-of-Astar-Search/blob/master/RobotPathfinding.gif)
+![Alt Text](https://github.com/acheng416/Variations-of-Astar-Search/blob/master/RobotPathfinding.gif)
